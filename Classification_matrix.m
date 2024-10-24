@@ -118,6 +118,7 @@ end
 % for calculating band power i took the mean of the filtered data, bcz
 % applying logistic regression on the data direct is not possible 
 % please review this part
+%I used the process with or without mean, results are same
 function bandPower = calculate_band_power(electrodeData, bandRange, Fs)
     % Apply band-pass filter for the specific frequency range
     [b, a] = butter(4, bandRange / (Fs / 2), 'bandpass');
