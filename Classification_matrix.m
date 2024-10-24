@@ -1,9 +1,8 @@
 function improved_logistic_regression()
-    % Define folder paths for Control EEG and DS cases
     controlFolderPath = '/MATLAB Drive/EEG newDataset/Control EEG/';
     dsFolderPath = '/MATLAB Drive/EEG newDataset/DS cases/';
 
-    % Control and DS age maps (from the image provided)
+    % control and ds age maps 
     controlAges = containers.Map({'71075', '71075a', '75872', '75872a', '77862', '77862a', '83810', ...
                                   '87925', '92359', '110903', '113566', '113566a', '119655', '121139', ...
                                   '121139a', '144955', '144955a', '158439', '158439a', '171610', ...
@@ -27,7 +26,8 @@ function improved_logistic_regression()
     fprintf('Processing DS EEG files...\n');
     dsData = process_files_for_power_and_pac(dsFolderPath, dsAges, relevantElectrodes, 1); % Label 1 for DS
 
-    % Prepare logistic regression for δ Power, θ Power, and PAC separately
+
+
     fprintf('Running separate logistic regressions...\n');
     
     % Delta Power Logistic Regression
@@ -39,7 +39,7 @@ function improved_logistic_regression()
     % PAC Logistic Regression
     run_individual_logistic_regression(controlData, dsData, 'PAC');
 
-    % Generate plots for figures (A-F)
+    % Generating plots
     plot_power_graphs(controlData, dsData);
 end
 
@@ -84,7 +84,7 @@ function groupData = process_files_for_power_and_pac(folderPath, ageMap, relevan
             % Truncate all electrode signals to the minimum length
             electrodeData = electrodeData(1:minLength, :);
 
-            % Calculate power for δ (1–4 Hz) and θ (4–7 Hz) bands
+
             deltaPower = calculate_band_power(electrodeData, [1 4], 250); % δ (1-4 Hz)
             thetaPower = calculate_band_power(electrodeData, [4 7], 250); % θ (4-7 Hz)
 
@@ -111,21 +111,27 @@ function groupData = process_files_for_power_and_pac(folderPath, ageMap, relevan
     end
 end
 
+
+
 %% Helper Function: Calculate Band Power
+%%==================================== Question : Mam Soyiba===============
+% for calculating band power i took the mean of the filtered data, bcz
+% applying logistic regression on the data direct is not possible 
+% please review this part
 function bandPower = calculate_band_power(electrodeData, bandRange, Fs)
     % Apply band-pass filter for the specific frequency range
     [b, a] = butter(4, bandRange / (Fs / 2), 'bandpass');
     filteredData = filtfilt(b, a, electrodeData);
     disp('band  Data Values:');
     
-    bandPower = mean(filteredData.^2, 1); % Power is the mean squared signal
+    bandPower = mean(filteredData.^2, 1); % Power is the mean squared signal =======================================Question=============================================
     disp(bandpower);  
 end
 
 %% Helper Function: Calculate Phase-Amplitude Coupling (PAC)
 function pacValue = calculate_pac(electrodeData)
     % Placeholder for real PAC calculation logic based on paper's method
-    pacValue = abs(mean(hilbert(electrodeData(:))));
+    pacValue = abs(mean(hilbert(electrodeData(:)))); %%=======================================================Also please take a look at here=============================
 end
 
 %% Function to Run Logistic Regression for Specific Metric (Delta, Theta, or PAC)
@@ -141,7 +147,7 @@ function run_individual_logistic_regression(controlData, dsData, metric)
     % Z-Score Normalization
     fprintf('Applying Z-score normalization for %s and Age...\n', metric);
     
-    % Normalize the metric (e.g., DeltaPower, ThetaPower, PAC)
+    % Normalize the metric (DeltaPower, ThetaPower, PAC)
     meanMetric = mean(allData);
     stdMetric = std(allData);
     normalizedMetric = (allData - meanMetric) / stdMetric;
@@ -154,7 +160,7 @@ function run_individual_logistic_regression(controlData, dsData, metric)
     % Prepare predictor table for GLM with normalized values
     predictorTable = table(normalizedMetric, normalizedAge, allLabels, 'VariableNames', {metric, 'Age', 'GroupLabel'});
 
-    % Fit the GLM model with a binomial distribution
+    % Fittinh GLM model with a binomial distribution
     try
         glmModel = fitglm(predictorTable, sprintf('GroupLabel ~ 1 + %s + Age', metric), ...
                           'Distribution', 'binomial', 'Link', 'logit');
@@ -180,7 +186,7 @@ end
 
 
 
-%% Helper Function: Plot Power Graphs (Figures A-F)
+%% Helper Function: Plot Power Graphs
 function plot_power_graphs(controlData, dsData)
     % Create plots for δ and θ power distributions and logistic regression results
     
@@ -220,7 +226,7 @@ function plot_power_graphs(controlData, dsData)
     title('Theta Power Comparison');
     ylabel('Power');
 
-    % Create new figure for logistic regression scatter plots (Figures E and F)
+    % Creating new figure for logistic regression scatter plots (Figures E and F)
     figure;
     subplot(1, 2, 1); % Delta logistic regression scatter plot
     scatter_logistic_results(controlData.DeltaPower, dsData.DeltaPower, 'Delta Power');
