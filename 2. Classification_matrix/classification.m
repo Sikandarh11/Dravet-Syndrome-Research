@@ -1,4 +1,4 @@
-function improved_logistic_regression()
+function classification()
     controlFolderPath = '/MATLAB Drive/EEG newDataset/Control EEG/';
     dsFolderPath = '/MATLAB Drive/EEG newDataset/DS cases/';
 
@@ -90,8 +90,8 @@ function groupData = process_files_for_power_and_pac(folderPath, ageMap, relevan
 
             % Store the mean δ and θ power and PAC
             pacValue = calculate_pac(electrodeData); % Placeholder for PAC calculation
-            groupData.DeltaPower = [groupData.DeltaPower; mean(deltaPower)];
-            groupData.ThetaPower = [groupData.ThetaPower; mean(thetaPower)];
+            groupData.DeltaPower = [groupData.DeltaPower; deltaPower];
+            groupData.ThetaPower = [groupData.ThetaPower; thetaPower];
             groupData.PAC = [groupData.PAC; pacValue];
 
             % Extract age from the file name
@@ -114,25 +114,20 @@ end
 
 
 %% Helper Function: Calculate Band Power
-%%==================================== Question : Mam Soyiba===============
-% for calculating band power i took the mean of the filtered data, bcz
-% please review this part
-%I used the process with or without mean, results are same
-%I uploaded the results screenshots please check the results also
 function bandPower = calculate_band_power(electrodeData, bandRange, Fs)
     % Apply band-pass filter for the specific frequency range
     [b, a] = butter(4, bandRange / (Fs / 2), 'bandpass');
     filteredData = filtfilt(b, a, electrodeData);
     disp('band  Data Values:');
     
-    bandPower = mean(filteredData.^2, 1); % Power is the mean squared signal =======================================Question=============================================
+    bandPower = mean(filteredData.^2, 1); % Power is the mean squared signal 
     disp(bandpower);  
 end
 
 %% Helper Function: Calculate Phase-Amplitude Coupling (PAC)
 function pacValue = calculate_pac(electrodeData)
     % Placeholder for real PAC calculation logic based on paper's method
-    pacValue = abs(mean(hilbert(electrodeData(:)))); %%=======================================================Also please take a look at here=============================
+    pacValue = abs(mean(hilbert(electrodeData(:))));
 end
 
 %% Function to Run Logistic Regression for Specific Metric (Delta, Theta, or PAC)
