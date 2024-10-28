@@ -1,41 +1,21 @@
 function bonferroni_correction
-    % Helper function to apply Bonferroni correction
-    function [adjustedPValues, significant] = bonferroni_correction(pValues, alpha)
-        % Adjusts p-values for multiple comparisons
-        m = length(pValues); 
-        adjustedPValues = min(pValues * m, 1);
-        significant = adjustedPValues < alpha;
-    end
+    % Load precomputed power spectra from Welch's method
+    load('power_spectra.mat', 'controlPower', 'dsPower');
 
-    % Folder paths for Control EEG and DS cases
-    controlFolderPath = '/MATLAB Drive/EEG newDataset/Control EEG/';
-    dsFolderPath = '/MATLAB Drive/EEG newDataset/DS cases/';
-
-    % Relevant electrodes from the paper
-    electrodes = ["EEGF3_Cz", "EEGFz_Cz", "EEGF4_Cz", ...
-                  "EEGC3_Cz", "EEGCz_Cz", "EEGC4_Cz", ...
-                  "EEGP3_Cz", "EEGPz_Cz", "EEGP4_Cz"];
-
-    % Read and process data for both groups
-    fprintf('Processing Control EEG files...\n');
-    controlData = process_group_files(controlFolderPath, electrodes);
-
-    fprintf('Processing DS EEG files...\n');
-    dsData = process_group_files(dsFolderPath, electrodes);
-
-    % Define frequency ranges
+    % Define frequency ranges: delta (1-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz)
     frequencyRanges = [1 4; 4 8; 8 13; 13 30]; 
 
+    % Initialize storage for p-values
     pValues = []; 
 
-    % Compare frequency ranges
-    fprintf('Comparing frequency ranges...\n');
+    % Perform T-Test for each frequency range
+    fprintf('Comparing frequency ranges with T-Test...\n');
     for i = 1:size(frequencyRanges, 1)
         fprintf('Testing frequency range: %d-%d Hz\n', frequencyRanges(i, 1), frequencyRanges(i, 2));
 
-        % Extract frequency-specific data
-        controlFreqData = extract_frequency_data(controlData, frequencyRanges(i, :));
-        dsFreqData = extract_frequency_data(dsData, frequencyRanges(i, :));
+        % Extract frequency-specific data from control and DS power data
+        controlFreqData = extract_frequency_data(controlPower, frequencyRanges(i, :));
+        dsFreqData = extract_frequency_data(dsPower, frequencyRanges(i, :));
 
         % Perform T-Test
         [~, pValue] = ttest2(controlFreqData, dsFreqData, 'Vartype', 'unequal');
@@ -47,7 +27,7 @@ function bonferroni_correction
     % Apply Bonferroni correction
     fprintf('Applying Bonferroni Correction...\n');
     alpha = 0.05;
-    [adjustedPValues, significant] = bonferroni_correction(pValues, alpha);
+    [adjustedPValues, significant] = apply_bonferroni_correction(pValues, alpha);
 
     % Display results
     fprintf('Adjusted p-values:\n');
@@ -56,35 +36,18 @@ function bonferroni_correction
     disp(significant);
 end
 
-%% Helper Function: Process Group Files for Relevant Electrodes
-function data = process_group_files(folderPath, electrodes)
-    files = dir(fullfile(folderPath, '*.edf'));
-    data = [];
-    for k = 1:length(files)
-        try
-            edfFile = fullfile(folderPath, files(k).name);
-            eegData = edfread(edfFile);
-
-            % Extract relevant electrode data
-            electrodeData = [];
-            for electrode = electrodes
-                if ismember(electrode, eegData.Properties.VariableNames)
-                    signal = eegData{:, electrode};
-                    signal = cell2mat(signal); 
-                    electrodeData = [electrodeData, signal(~isnan(signal))];
-                end
-            end
-            data = [data; mean(electrodeData, 2)];
-            fprintf('Processed %s with %d relevant signals.\n', files(k).name, size(electrodeData, 2));
-        catch ME
-            fprintf('Error processing %s: %s\n', files(k).name, ME.message);
-        end
-    end
+%% Helper Function: Apply Bonferroni Correction
+function [adjustedPValues, significant] = apply_bonferroni_correction(pValues, alpha)
+    % Adjusts p-values for multiple comparisons using Bonferroni correction
+    m = length(pValues); 
+    adjustedPValues = min(pValues * m, 1);
+    significant = adjustedPValues < alpha;
 end
 
-%% Helper Function: Extract Frequency Data
-function freqData = extract_frequency_data(data, freqRange)
-    % Simulate data filtering based on frequency range (replace with real logic)
-    freqData = data(mod(1:length(data), 30) >= freqRange(1) & ...
-                    mod(1:length(data), 30) < freqRange(2));
+%% Helper Function: Extract Frequency Data Based on Range
+function freqData = extract_frequency_data(powerData, freqRange)
+    % Ensure we stay within the data bounds
+    freqRange = min(freqRange(1):min(freqRange(2), size(powerData, 2)));
+    % Average power within the range for each entry
+    freqData = mean(powerData(:, freqRange), 2); 
 end
