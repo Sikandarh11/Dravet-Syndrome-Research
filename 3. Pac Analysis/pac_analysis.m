@@ -153,9 +153,7 @@ end
 
 %% Custom Shapiro-Wilk Test for Normality
 function [h, p] = custom_shapiro_wilk(data)
-    % Approximate Shapiro-Wilk test logic; consider using MATLAB statistical toolbox for full functionality.
     % Output h is 0 if normality is not rejected, 1 otherwise.
-    % Output p is the p-value of the test.
     n = length(data);
     sortedData = sort(data);
     expected = norminv(((1:n)' - 0.375) / (n + 0.25));
