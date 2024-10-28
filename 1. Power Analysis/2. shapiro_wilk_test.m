@@ -1,69 +1,28 @@
 function shapiro_wilk_test
-    % Define folder paths for Control EEG and DS cases
-    controlFolderPath = '/MATLAB Drive/EEG newDataset/Control EEG/';
-    dsFolderPath = '/MATLAB Drive/EEG newDataset/DS cases/';
-
-    % List of relevant electrodes from the paper
-    relevantElectrodes = ["EEGF3_Cz", "EEGFz_Cz", "EEGF4_Cz", ...
-                          "EEGC3_Cz", "EEGCz_Cz", "EEGC4_Cz", ...
-                          "EEGP3_Cz", "EEGPz_Cz", "EEGP4_Cz"];
-
-    % Get the list of all EDF files in both directories
-    controlFiles = dir(fullfile(controlFolderPath, '*.edf'));
-    dsFiles = dir(fullfile(dsFolderPath, '*.edf'));
-
-    % Process and extract data for each group
-    fprintf('Processing Control EEG files...\n');
-    controlData = process_files(controlFiles, controlFolderPath, relevantElectrodes);
-
-    fprintf('Processing DS EEG files...\n');
-    dsData = process_files(dsFiles, dsFolderPath, relevantElectrodes);
+    % Load power data from Welch method
+    if isfile('power_spectra.mat')
+        load('power_spectra.mat', 'controlPower', 'dsPower');
+    else
+        error('File power_spectra.mat not found. Please run welch_power.m first.');
+    end
 
     % Perform Shapiro-Wilk Test for both groups
-    fprintf('Performing Shapiro-Wilk Test...\n');
-    perform_shapiro_wilk(controlData, 'Control Group');
-    perform_shapiro_wilk(dsData, 'DS Group');
-end
+    fprintf('Performing Shapiro-Wilk Test on Control Group Power Data...\n');
+    perform_shapiro_wilk(controlPower, 'Control Group');
 
-%% Helper Function: Process Files and Extract Data for Relevant Electrodes
-function groupData = process_files(fileList, folderPath, relevantElectrodes)
-    groupData = []; 
-
-    for k = 1:length(fileList)
-        try
-            % Load EDF file
-            edfFile = fullfile(folderPath, fileList(k).name);
-            data = edfread(edfFile);
-
-            % Extract data for relevant electrodes
-            electrodeData = [];
-            for electrode = relevantElectrodes
-                if ismember(electrode, data.Properties.VariableNames)
-                    signal = data{:, electrode};
-                    signal = cell2mat(signal); % Convert to numeric array
-                    electrodeData = [electrodeData, signal(~isnan(signal))];
-                end
-            end
-
-            % Store average power across electrodes
-            avgPower = mean(electrodeData, 2); 
-            groupData = [groupData; avgPower]; %#ok<AGROW>
-
-            fprintf('Processed %s with %d relevant signals.\n', ...
-                    fileList(k).name, size(electrodeData, 2));
-        catch ME
-            fprintf('Error processing %s: %s\n', fileList(k).name, ME.message);
-        end
-    end
+    fprintf('Performing Shapiro-Wilk Test on DS Group Power Data...\n');
+    perform_shapiro_wilk(dsPower, 'DS Group');
 end
 
 %% Helper Function: Perform Shapiro-Wilk Test for Normality
 function perform_shapiro_wilk(data, groupName)
     fprintf('Shapiro-Wilk Test for %s...\n', groupName);
     try
-        % Perform Shapiro-Wilk test
-        [h, p] = swtest(data);
-        fprintf('Result: h = %d, p = %.4f\n', h, p);
+        % Perform Shapiro-Wilk test on each frequency band
+        for i = 1:size(data, 2)
+            [h, p] = swtest(data(:, i));
+            fprintf('Frequency Band %d: h = %d, p = %.4f\n', i, h, p);
+        end
     catch ME
         fprintf('Error in Shapiro-Wilk Test for %s: %s\n', groupName, ME.message);
     end
