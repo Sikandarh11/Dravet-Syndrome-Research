@@ -7,7 +7,7 @@ function welch_power
     controlFiles = dir(fullfile(controlFolderPath, '*.edf'));
     dsFiles = dir(fullfile(dsFolderPath, '*.edf'));
 
-    % Debugging: Verify directories and files found
+  
     fprintf('Found %d control EEG files.\n', length(controlFiles));
     fprintf('Found %d DS EEG files.\n', length(dsFiles));
 
